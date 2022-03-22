@@ -1,0 +1,90 @@
+---
+parser: "@typescript-eslint/parser"
+plugins:
+  - import
+  - svelte3
+  - "@typescript-eslint"
+extends:
+  - eslint:recommended
+  - plugin:import/recommended
+  - plugin:import/typescript # this line does the trick
+  - plugin:@typescript-eslint/recommended
+overrides:
+  - files:
+      - "*.svelte"
+    processor: svelte3/svelte3
+  - files:
+      - src
+    env:
+      browser: true
+
+env:
+  node: true
+
+settings:
+  svelte3/typescript: true
+
+  import/resolver:
+    node: {} # workaround for https://github.com/benmosher/eslint-plugin-import/issues/1396
+    webpack:
+      config:
+        resolve:
+          modules:
+            - node_modules
+            - src
+          extensions:
+            - .d.ts
+            - .ts
+            - .mjs
+            - .js
+
+rules:
+  # Core
+  sort-imports:
+    - error
+    - ignoreDeclarationSort: true
+
+  # Import
+  import/no-useless-path-segments: error
+  import/no-extraneous-dependencies: error
+  import/no-default-export: error
+  import/newline-after-import: error
+  import/no-duplicates: error
+  import/first: error
+  import/export: error
+  import/no-dynamic-require: error
+  import/extensions:
+    - error
+    - always
+    - ts: never
+      mjs: never
+      js: never
+  import/order:
+    - error
+    - newlines-between: always
+      alphabetize:
+        order: asc
+      groups:
+        - builtin
+        - external
+        - internal
+        - parent
+        - sibling
+        - index
+
+  # TypeScript
+  "@typescript-eslint/naming-convention":
+    - error
+    - selector: [interface, typeAlias, typeParameter]
+      format: [PascalCase]
+      suffix: [T]
+      filter:
+        match: false
+        regex:
+          "^(.|ID)$|HTMLElementTagNameMap"
+          # HTMLElementTagNameMap is extended in many web components to
+          # enable typecheking support in runem.lit-plugin (VS Code
+          # plugin)
+          #
+          # TODO: Remove HTMLElementTagNameMap from ignore list and find
+        # a better way to enable typechecking in VS Code.
