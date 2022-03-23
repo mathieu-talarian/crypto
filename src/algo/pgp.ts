@@ -70,6 +70,6 @@ export class PGP extends AlgoBase {
       decryptionKeys: privateKey,
       expectSigned: true,
     });
-    return encrypted.data;
+    return encrypted.data as string;
   };
 }
