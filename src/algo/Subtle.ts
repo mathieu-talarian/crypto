@@ -3,9 +3,29 @@ import { toByteArray, toHexString } from 'utils';
 
 export class Subtle extends AlgoBase {
 	public declare key: CryptoKey;
+	public declare ecdsaPublic: CryptoKey;
+	public declare ecdsaPrivate: CryptoKey;
 	constructor() {
 		super();
 		this.genAESKey().catch(console.error);
+		this.genEDCSA().catch();
+	}
+
+	async genEDCSA() {
+		this.ecdsaPublic = await crypto.subtle.importKey(
+			'spki',
+			toByteArray(import.meta.env.VITE_ECDSA_PUBLIC_KEY),
+			{ name: 'ECDSA', namedCurve: 'P-256' },
+			true,
+			['verify'],
+		);
+		this.ecdsaPrivate = await crypto.subtle.importKey(
+			'pkcs8',
+			toByteArray(import.meta.env.VITE_ECDSA_PRIVATE_KEY),
+			{ name: 'ECDSA', namedCurve: 'P-256' },
+			true,
+			['sign'],
+		);
 	}
 
 	genAESKey = async () => {
@@ -13,16 +33,39 @@ export class Subtle extends AlgoBase {
 
 		this.key = await crypto.subtle.importKey('raw', v, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
 	};
+
+	sign = async (message: string) =>
+		await crypto.subtle.sign(
+			{
+				name: 'ECDSA',
+				hash: { name: 'SHA-256' },
+			},
+			this.ecdsaPrivate,
+			new TextEncoder().encode(message),
+		);
+
+	verify = (message: string, signature: string) =>
+		window.crypto.subtle.verify(
+			{
+				name: 'ECDSA',
+				hash: { name: 'SHA-256' },
+			},
+			this.ecdsaPublic,
+			toByteArray(signature),
+			new TextEncoder().encode(message),
+		);
+
 	async encrypt(message: string, iv?: Uint8Array): Promise<Uint8Array> {
+		const encodedMessage = new TextEncoder().encode(message);
+
 		const cypher = await crypto.subtle.encrypt(
 			{
 				name: 'AES-GCM',
 				iv,
 			},
 			this.key,
-			new TextEncoder().encode(message),
+			encodedMessage,
 		);
-		console.log(cypher);
 		return new Uint8Array(cypher);
 	}
 	async decrypt(cypher: Uint8Array, iv?: Uint8Array): Promise<string> {

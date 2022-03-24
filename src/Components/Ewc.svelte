@@ -7,7 +7,7 @@
 	import { oneMB } from 'files/1MB';
 	import { fiveMB } from 'files/5MB';
 	import type { Idb } from 'store';
-	import { createId, toByteArray, toHexString } from 'utils';
+	import { createId, getNonce, setNonce, toByteArray, toHexString } from 'utils';
 
 	const name = `ewc`;
 
@@ -29,18 +29,18 @@
 			? await idb.getVal(`${name}/oneEncrypted`)
 			: undefined;
 		fiveEncrypted = (await idb.getVal(`${name}/fiveEncrypted`))
-			? JSON.parse(await idb.getVal(`${name}/fiveEncrypted`))
+			? await idb.getVal(`${name}/fiveEncrypted`)
 			: undefined;
 		tenEncrypted = (await idb.getVal(`${name}/tenEncrypted`))
-			? JSON.parse(await idb.getVal(`${name}/tenEncrypted`))
+			? await idb.getVal(`${name}/tenEncrypted`)
 			: undefined;
 	});
 
 	$: ewc = new easyWebcrypto();
 
 	const encodeOneMB = async () => {
-		const res = await axios.post(`http://localhost:8080/encode/${oneId}`);
-		const iv = new TextEncoder().encode(res.data);
+		const nonce = await setNonce(oneId);
+		const iv = new TextEncoder().encode(nonce);
 		const encrypted = await ewc.encrypt(JSON.stringify(oneMB), iv);
 
 		oneEncrypted = toHexString(encrypted);
@@ -48,8 +48,8 @@
 	};
 
 	const encodeFiveMB = async () => {
-		const res = await axios.post(`http://localhost:8080/encode/${fiveId}`);
-		const iv = new TextEncoder().encode(res.data);
+		const nonce = await setNonce(fiveId);
+		const iv = new TextEncoder().encode(nonce);
 
 		const encrypted = await ewc.encrypt(JSON.stringify(fiveMB), iv);
 		fiveEncrypted = toHexString(encrypted);
@@ -57,8 +57,8 @@
 	};
 
 	const encodeTenMB = async () => {
-		const res = await axios.post(`http://localhost:8080/encode/${tenId}`);
-		const iv = new TextEncoder().encode(res.data);
+		const nonce = await setNonce(tenId);
+		const iv = new TextEncoder().encode(nonce);
 
 		const encrypted = await ewc.encrypt(JSON.stringify(tenMB), iv);
 		tenEncrypted = toHexString(encrypted);
@@ -69,9 +69,9 @@
 		if (!oneEncrypted) return;
 
 		const encoded = toByteArray(oneEncrypted);
-		const res = await axios.post(`http://127.0.0.1:8080/decode/${oneId}`);
 
-		const iv = new TextEncoder().encode(res.data);
+		const nonce = await getNonce(oneId);
+		const iv = new TextEncoder().encode(nonce);
 
 		const decrypted = await ewc.decrypt(encoded, iv);
 		if (decrypted === JSON.stringify(oneMB)) {
@@ -81,11 +81,10 @@
 
 	const decodeFiveMB = async () => {
 		if (!fiveEncrypted) return;
-		console.log(fiveEncrypted);
 		const encoded = toByteArray(fiveEncrypted);
-		const res = await axios.post(`http://127.0.0.1:8080/decode/${fiveId}`);
 
-		const iv = new TextEncoder().encode(res.data);
+		const nonce = await getNonce(fiveId);
+		const iv = new TextEncoder().encode(nonce);
 
 		const decrypted = await ewc.decrypt(encoded, iv);
 
@@ -98,9 +97,8 @@
 		if (!tenEncrypted) return;
 		const encoded = toByteArray(tenEncrypted);
 
-		const res = await axios.post(`http://127.0.0.1:8080/decode/${tenId}`);
-
-		const iv = new TextEncoder().encode(res.data);
+		const nonce = await getNonce(tenId);
+		const iv = new TextEncoder().encode(nonce);
 
 		const decrypted = await ewc.decrypt(encoded, iv);
 

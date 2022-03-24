@@ -7,6 +7,7 @@
 	import { fiveMB } from 'files/5MB';
 	import type { Idb } from 'store';
 	import { createId, getNonce, setNonce, toByteArray, toHexString } from 'utils';
+	import axios from 'axios';
 
 	const name = `subtle`;
 	let subtle: Subtle;
@@ -38,6 +39,10 @@
 	const encodeOneMB = async () => {
 		const nonce = await setNonce(oneId);
 		const iv = new TextEncoder().encode(nonce);
+
+		const sign = await subtle.sign(JSON.stringify(oneMB));
+
+		await axios.post(`http://localhost:8080/sign/${oneId}`, { sign: toHexString(new Uint8Array(sign)) });
 		const encrypted = await subtle.encrypt(JSON.stringify(oneMB), iv);
 
 		oneEncrypted = toHexString(encrypted);
@@ -72,6 +77,10 @@
 
 		const decrypted = await subtle.decrypt(encoded, iv);
 
+		const { data } = await axios.post(`http://localhost:8080/verify/${oneId}`);
+		console.log(toByteArray(data));
+
+		console.log(await subtle.verify(decrypted, data));
 		if (decrypted === JSON.stringify(oneMB)) {
 			console.log('1M decryption success');
 		}
