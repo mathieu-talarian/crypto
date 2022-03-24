@@ -2,21 +2,23 @@
 	import axios from 'axios';
 	import { getContext, onMount } from 'svelte';
 
-	import { Nacl } from 'algo/nacl';
+	import { easyWebcrypto } from 'algo/easyWebcrypto';
 	import { tenMB } from 'files/10MB';
 	import { oneMB } from 'files/1MB';
 	import { fiveMB } from 'files/5MB';
 	import type { Idb } from 'store';
-	import { createId, getNonce, setNonce, toByteArray, toHexString } from 'utils';
+	import { createId, toByteArray, toHexString } from 'utils';
 
-	const name = `nacl`;
-	let nacl: Nacl;
+	const name = `ewc`;
 
-	let idb: Idb;
-	let oneEncrypted;
+	let ewc: easyWebcrypto;
+
 	const oneId = createId(name, JSON.stringify(oneMB));
 	const fiveId = createId(name, JSON.stringify(fiveMB));
 	const tenId = createId(name, JSON.stringify(tenMB));
+
+	let idb: Idb;
+	let oneEncrypted;
 	let fiveEncrypted;
 	let tenEncrypted;
 
@@ -27,38 +29,38 @@
 			? await idb.getVal(`${name}/oneEncrypted`)
 			: undefined;
 		fiveEncrypted = (await idb.getVal(`${name}/fiveEncrypted`))
-			? await idb.getVal(`${name}/fiveEncrypted`)
+			? JSON.parse(await idb.getVal(`${name}/fiveEncrypted`))
 			: undefined;
 		tenEncrypted = (await idb.getVal(`${name}/tenEncrypted`))
-			? await idb.getVal(`${name}/tenEncrypted`)
+			? JSON.parse(await idb.getVal(`${name}/tenEncrypted`))
 			: undefined;
 	});
 
-	$: nacl = new Nacl();
+	$: ewc = new easyWebcrypto();
 
 	const encodeOneMB = async () => {
-		const nonce = await setNonce(oneId);
-		const iv = new TextEncoder().encode(nonce);
-		const encrypted = await nacl.encrypt(JSON.stringify(oneMB), iv);
+		const res = await axios.post(`http://localhost:8080/encode/${oneId}`);
+		const iv = new TextEncoder().encode(res.data);
+		const encrypted = await ewc.encrypt(JSON.stringify(oneMB), iv);
 
 		oneEncrypted = toHexString(encrypted);
 		await idb.setVal(`${name}/oneEncrypted`, oneEncrypted);
 	};
 
 	const encodeFiveMB = async () => {
-		const nonce = await setNonce(fiveId);
-		const iv = new TextEncoder().encode(nonce);
+		const res = await axios.post(`http://localhost:8080/encode/${fiveId}`);
+		const iv = new TextEncoder().encode(res.data);
 
-		const encrypted = await nacl.encrypt(JSON.stringify(fiveMB), iv);
+		const encrypted = await ewc.encrypt(JSON.stringify(fiveMB), iv);
 		fiveEncrypted = toHexString(encrypted);
 		await idb.setVal(`${name}/fiveEncrypted`, fiveEncrypted);
 	};
 
 	const encodeTenMB = async () => {
-		const nonce = await setNonce(tenId);
-		const iv = new TextEncoder().encode(nonce);
+		const res = await axios.post(`http://localhost:8080/encode/${tenId}`);
+		const iv = new TextEncoder().encode(res.data);
 
-		const encrypted = await nacl.encrypt(JSON.stringify(tenMB), iv);
+		const encrypted = await ewc.encrypt(JSON.stringify(tenMB), iv);
 		tenEncrypted = toHexString(encrypted);
 		await idb.setVal(`${name}/tenEncrypted`, tenEncrypted);
 	};
@@ -67,12 +69,11 @@
 		if (!oneEncrypted) return;
 
 		const encoded = toByteArray(oneEncrypted);
+		const res = await axios.post(`http://127.0.0.1:8080/decode/${oneId}`);
 
-		const nonce = await getNonce(oneId);
-		const iv = new TextEncoder().encode(nonce);
+		const iv = new TextEncoder().encode(res.data);
 
-		const decrypted = await nacl.decrypt(encoded, iv);
-
+		const decrypted = await ewc.decrypt(encoded, iv);
 		if (decrypted === JSON.stringify(oneMB)) {
 			console.log('1M decryption success');
 		}
@@ -82,11 +83,11 @@
 		if (!fiveEncrypted) return;
 		console.log(fiveEncrypted);
 		const encoded = toByteArray(fiveEncrypted);
+		const res = await axios.post(`http://127.0.0.1:8080/decode/${fiveId}`);
 
-		const nonce = await getNonce(fiveId);
-		const iv = new TextEncoder().encode(nonce);
+		const iv = new TextEncoder().encode(res.data);
 
-		const decrypted = await nacl.decrypt(encoded, iv);
+		const decrypted = await ewc.decrypt(encoded, iv);
 
 		if (decrypted === JSON.stringify(fiveMB)) {
 			console.log('Five decryption success');
@@ -97,10 +98,11 @@
 		if (!tenEncrypted) return;
 		const encoded = toByteArray(tenEncrypted);
 
-		const nonce = await getNonce(tenId);
-		const iv = new TextEncoder().encode(nonce);
+		const res = await axios.post(`http://127.0.0.1:8080/decode/${tenId}`);
 
-		const decrypted = await nacl.decrypt(encoded, iv);
+		const iv = new TextEncoder().encode(res.data);
+
+		const decrypted = await ewc.decrypt(encoded, iv);
 
 		if (decrypted === JSON.stringify(tenMB)) {
 			console.log('Ten decryption success');
@@ -110,7 +112,7 @@
 
 <header class="bg-white shadow">
 	<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-		<h1 class="text-3xl font-bold text-gray-900">NACL</h1>
+		<h1 class="text-3xl font-bold text-gray-900">EWC</h1>
 	</div>
 </header>
 <main>

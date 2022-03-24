@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_GPG_PRIVATE: string;
   readonly VITE_GPG_PUBLIC: string;
   readonly VITE_GPG_PASS: string;
+  readonly VITE_AES_SUBTLE_KEY: string;
   // more env variables...
 }
 

@@ -1,16 +1,15 @@
 <script lang="ts">
-	import axios from 'axios';
 	import { getContext, onMount } from 'svelte';
 
-	import { Nacl } from 'algo/nacl';
+	import { Subtle } from 'algo/Subtle';
 	import { tenMB } from 'files/10MB';
 	import { oneMB } from 'files/1MB';
 	import { fiveMB } from 'files/5MB';
 	import type { Idb } from 'store';
 	import { createId, getNonce, setNonce, toByteArray, toHexString } from 'utils';
 
-	const name = `nacl`;
-	let nacl: Nacl;
+	const name = `subtle`;
+	let subtle: Subtle;
 
 	let idb: Idb;
 	let oneEncrypted;
@@ -34,12 +33,12 @@
 			: undefined;
 	});
 
-	$: nacl = new Nacl();
+	$: subtle = new Subtle();
 
 	const encodeOneMB = async () => {
 		const nonce = await setNonce(oneId);
 		const iv = new TextEncoder().encode(nonce);
-		const encrypted = await nacl.encrypt(JSON.stringify(oneMB), iv);
+		const encrypted = await subtle.encrypt(JSON.stringify(oneMB), iv);
 
 		oneEncrypted = toHexString(encrypted);
 		await idb.setVal(`${name}/oneEncrypted`, oneEncrypted);
@@ -49,7 +48,7 @@
 		const nonce = await setNonce(fiveId);
 		const iv = new TextEncoder().encode(nonce);
 
-		const encrypted = await nacl.encrypt(JSON.stringify(fiveMB), iv);
+		const encrypted = await subtle.encrypt(JSON.stringify(fiveMB), iv);
 		fiveEncrypted = toHexString(encrypted);
 		await idb.setVal(`${name}/fiveEncrypted`, fiveEncrypted);
 	};
@@ -58,7 +57,7 @@
 		const nonce = await setNonce(tenId);
 		const iv = new TextEncoder().encode(nonce);
 
-		const encrypted = await nacl.encrypt(JSON.stringify(tenMB), iv);
+		const encrypted = await subtle.encrypt(JSON.stringify(tenMB), iv);
 		tenEncrypted = toHexString(encrypted);
 		await idb.setVal(`${name}/tenEncrypted`, tenEncrypted);
 	};
@@ -71,7 +70,7 @@
 		const nonce = await getNonce(oneId);
 		const iv = new TextEncoder().encode(nonce);
 
-		const decrypted = await nacl.decrypt(encoded, iv);
+		const decrypted = await subtle.decrypt(encoded, iv);
 
 		if (decrypted === JSON.stringify(oneMB)) {
 			console.log('1M decryption success');
@@ -86,7 +85,7 @@
 		const nonce = await getNonce(fiveId);
 		const iv = new TextEncoder().encode(nonce);
 
-		const decrypted = await nacl.decrypt(encoded, iv);
+		const decrypted = await subtle.decrypt(encoded, iv);
 
 		if (decrypted === JSON.stringify(fiveMB)) {
 			console.log('Five decryption success');
@@ -100,7 +99,7 @@
 		const nonce = await getNonce(tenId);
 		const iv = new TextEncoder().encode(nonce);
 
-		const decrypted = await nacl.decrypt(encoded, iv);
+		const decrypted = await subtle.decrypt(encoded, iv);
 
 		if (decrypted === JSON.stringify(tenMB)) {
 			console.log('Ten decryption success');
@@ -110,7 +109,7 @@
 
 <header class="bg-white shadow">
 	<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-		<h1 class="text-3xl font-bold text-gray-900">NACL</h1>
+		<h1 class="text-3xl font-bold text-gray-900">Subtle</h1>
 	</div>
 </header>
 <main>
